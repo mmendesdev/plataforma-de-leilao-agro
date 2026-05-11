@@ -15,49 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { mockLotes, mockLeiloes } from '@/lib/mock-data'
+const lancesAtivos: { id: string; lote: string; leilao: string; leilaoId: string; meuLance: number; lanceAtual: number; status: string; horario: string }[] = []
 
-const lancesAtivos = [
-  {
-    id: '1',
-    lote: 'Lote #1 - Imperador FIV',
-    leilao: 'Grande Leilão Nelore Elite 2024',
-    leilaoId: 'lei1',
-    meuLance: 85000,
-    lanceAtual: 87500,
-    status: 'superado',
-    horario: '14:35'
-  },
-  {
-    id: '2',
-    lote: 'Lote #2 - Princesa do Vale',
-    leilao: 'Grande Leilão Nelore Elite 2024',
-    leilaoId: 'lei1',
-    meuLance: 28000,
-    lanceAtual: 28000,
-    status: 'vencendo',
-    horario: '14:20'
-  }
-]
-
-const historicoLances = [
-  {
-    id: '3',
-    lote: 'Lote #3 - Lote Bezerros Elite',
-    leilao: 'Grande Leilão Nelore Elite 2024',
-    meuLance: 145000,
-    resultado: 'arrematado',
-    data: '15/03/2024'
-  },
-  {
-    id: '4',
-    lote: 'Lote #5 - Touro Campeão',
-    leilao: 'Leilão Virtual Girolando',
-    meuLance: 92000,
-    resultado: 'perdido',
-    data: '10/03/2024'
-  }
-]
+const historicoLances: { id: string; lote: string; leilao: string; meuLance: number; resultado: string; data: string }[] = []
 
 export default function LancesPage() {
   return (
@@ -131,7 +91,13 @@ export default function LancesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {lancesAtivos.map((lance) => (
+                  {lancesAtivos.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                        Nenhum lance ativo no momento
+                      </TableCell>
+                    </TableRow>
+                  ) : lancesAtivos.map((lance) => (
                     <TableRow key={lance.id}>
                       <TableCell className="font-medium">{lance.lote}</TableCell>
                       <TableCell className="text-muted-foreground">{lance.leilao}</TableCell>
@@ -181,7 +147,13 @@ export default function LancesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {historicoLances.map((lance) => (
+                  {historicoLances.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                        Nenhum lance no histórico
+                      </TableCell>
+                    </TableRow>
+                  ) : historicoLances.map((lance) => (
                     <TableRow key={lance.id}>
                       <TableCell className="font-medium">{lance.lote}</TableCell>
                       <TableCell className="text-muted-foreground">{lance.leilao}</TableCell>

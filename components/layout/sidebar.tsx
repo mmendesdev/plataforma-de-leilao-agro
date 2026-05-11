@@ -36,6 +36,7 @@ const menuProdutor = [
   { label: 'Meus Animais', href: '/dashboard/animais', icon: Package },
   { label: 'Meus Lotes', href: '/dashboard/lotes', icon: FileText },
   { label: 'Vendas', href: '/dashboard/vendas', icon: TrendingUp },
+  { label: 'Carteira', href: '/dashboard/carteira', icon: Wallet },
   { label: 'Faturamento', href: '/dashboard/faturamento', icon: Wallet },
 ]
 

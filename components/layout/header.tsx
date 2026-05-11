@@ -154,12 +154,14 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/carteira">
-                      <Wallet className="mr-2 h-4 w-4" />
-                      Carteira
-                    </Link>
-                  </DropdownMenuItem>
+                  {(currentUser.role === 'comprador' || currentUser.role === 'produtor') && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/carteira">
+                        <Wallet className="mr-2 h-4 w-4" />
+                        Carteira
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/configuracoes">
                       <Settings className="mr-2 h-4 w-4" />

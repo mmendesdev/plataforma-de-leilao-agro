@@ -35,10 +35,10 @@ const features = [
 ]
 
 const stats = [
-  { value: 'R$ 2.4B', label: 'Volume Negociado' },
-  { value: '15.000+', label: 'Animais Vendidos' },
-  { value: '98%', label: 'Satisfação' },
-  { value: '500+', label: 'Fazendas Parceiras' }
+  { value: 'R$ 0', label: 'Volume Negociado' },
+  { value: '0', label: 'Animais Vendidos' },
+  { value: '0%', label: 'Satisfação' },
+  { value: '0', label: 'Fazendas Parceiras' }
 ]
 
 export default function HomePage() {
@@ -111,11 +111,19 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {leiloesDestaque.map((leilao) => (
-              <LeilaoCard key={leilao.id} leilao={leilao} />
-            ))}
-          </div>
+          {leiloesDestaque.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+              <Gavel className="mb-3 h-12 w-12 text-muted-foreground/40" />
+              <p className="text-base font-medium text-muted-foreground">Nenhum leilão disponível no momento</p>
+              <p className="mt-1 text-sm text-muted-foreground/70">Em breve novos pregões serão publicados aqui</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {leiloesDestaque.map((leilao) => (
+                <LeilaoCard key={leilao.id} leilao={leilao} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

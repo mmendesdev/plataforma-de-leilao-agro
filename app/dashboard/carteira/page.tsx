@@ -24,40 +24,7 @@ import {
 } from '@/components/ui/select'
 import { useAppStore } from '@/lib/store'
 
-const transacoes = [
-  {
-    id: '1',
-    tipo: 'entrada',
-    descricao: 'Depósito via PIX',
-    valor: 50000,
-    data: '15/03/2024',
-    status: 'confirmado'
-  },
-  {
-    id: '2',
-    tipo: 'saida',
-    descricao: 'Pagamento Lote #3 - Nelore Elite',
-    valor: 145000,
-    data: '14/03/2024',
-    status: 'confirmado'
-  },
-  {
-    id: '3',
-    tipo: 'entrada',
-    descricao: 'Estorno de lance cancelado',
-    valor: 5000,
-    data: '10/03/2024',
-    status: 'confirmado'
-  },
-  {
-    id: '4',
-    tipo: 'saida',
-    descricao: 'Taxa de participação',
-    valor: 500,
-    data: '08/03/2024',
-    status: 'confirmado'
-  }
-]
+const transacoes: { id: string; tipo: string; descricao: string; valor: number; data: string; status: string }[] = []
 
 export default function CarteiraPage() {
   const { currentUser } = useAppStore()
@@ -158,7 +125,7 @@ export default function CarteiraPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Entradas (30 dias)</p>
                 <p className="text-2xl font-bold text-green-600">
-                  +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(55000)}
+                  +{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transacoes.filter(t => t.tipo === 'entrada').reduce((acc, t) => acc + t.valor, 0))}
                 </p>
               </div>
             </div>
@@ -174,7 +141,7 @@ export default function CarteiraPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Saídas (30 dias)</p>
                 <p className="text-2xl font-bold text-red-600">
-                  -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(145500)}
+                  -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transacoes.filter(t => t.tipo === 'saida').reduce((acc, t) => acc + t.valor, 0))}
                 </p>
               </div>
             </div>
@@ -226,41 +193,49 @@ export default function CarteiraPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {transacoes.map((transacao) => (
-              <div
-                key={transacao.id}
-                className="flex items-center justify-between rounded-lg border p-4"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    transacao.tipo === 'entrada' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {transacao.tipo === 'entrada' ? (
-                      <ArrowDownLeft className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <ArrowUpRight className="h-5 w-5 text-red-600" />
-                    )}
+          {transacoes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <History className="mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">Nenhuma transação realizada</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">Suas transações aparecerão aqui após depósitos ou compras</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {transacoes.map((transacao) => (
+                <div
+                  key={transacao.id}
+                  className="flex items-center justify-between rounded-lg border p-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      transacao.tipo === 'entrada' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      {transacao.tipo === 'entrada' ? (
+                        <ArrowDownLeft className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <ArrowUpRight className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{transacao.descricao}</p>
+                      <p className="text-sm text-muted-foreground">{transacao.data}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{transacao.descricao}</p>
-                    <p className="text-sm text-muted-foreground">{transacao.data}</p>
+                  <div className="text-right">
+                    <p className={`font-semibold ${
+                      transacao.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {transacao.tipo === 'entrada' ? '+' : '-'}
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transacao.valor)}
+                    </p>
+                    <Badge variant="outline" className="text-xs">
+                      {transacao.status}
+                    </Badge>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-semibold ${
-                    transacao.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {transacao.tipo === 'entrada' ? '+' : '-'}
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transacao.valor)}
-                  </p>
-                  <Badge variant="outline" className="text-xs">
-                    {transacao.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

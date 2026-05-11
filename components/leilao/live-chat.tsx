@@ -17,40 +17,7 @@ interface ChatMessage {
   tipo: 'mensagem' | 'sistema' | 'lance'
 }
 
-const mockMessages: ChatMessage[] = [
-  {
-    id: '1',
-    userId: 'system',
-    userName: 'Sistema',
-    message: 'Bem-vindos ao Grande Leilão Nelore Elite 2024!',
-    timestamp: new Date().toISOString(),
-    tipo: 'sistema'
-  },
-  {
-    id: '2',
-    userId: '2',
-    userName: 'Maria Santos',
-    message: 'Lote #1 agora em pregão! Animal de excelente genética.',
-    timestamp: new Date().toISOString(),
-    tipo: 'sistema'
-  },
-  {
-    id: '3',
-    userId: '3',
-    userName: 'João Oliveira',
-    message: 'Interessado nesse touro!',
-    timestamp: new Date().toISOString(),
-    tipo: 'mensagem'
-  },
-  {
-    id: '4',
-    userId: 'system',
-    userName: 'Sistema',
-    message: 'Novo lance: R$ 85.000,00 - João Oliveira',
-    timestamp: new Date().toISOString(),
-    tipo: 'lance'
-  }
-]
+const mockMessages: ChatMessage[] = []
 
 export function LiveChat() {
   const { currentUser } = useAppStore()

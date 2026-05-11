@@ -152,11 +152,21 @@ export default function DashboardPage() {
       {/* Leilões em Destaque */}
       <div>
         <h2 className="mb-4 text-xl font-semibold">Leilões em Destaque</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          {leiloesAtivos.map(leilao => (
-            <LeilaoCard key={leilao.id} leilao={leilao} />
-          ))}
-        </div>
+        {leiloesAtivos.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <Gavel className="mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">Nenhum leilão ativo no momento</p>
+              <p className="mt-1 text-xs text-muted-foreground/70">Os leilões em andamento ou agendados aparecerão aqui</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {leiloesAtivos.map(leilao => (
+              <LeilaoCard key={leilao.id} leilao={leilao} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

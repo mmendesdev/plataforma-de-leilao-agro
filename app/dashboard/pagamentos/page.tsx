@@ -12,44 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { mockPagamentos } from '@/lib/mock-data'
-
-const pagamentos = [
-  {
-    id: '1',
-    lote: 'Lote #3 - Lote Bezerros Elite',
-    leilao: 'Grande Leilão Nelore Elite 2024',
-    valor: 145000,
-    taxas: 7250,
-    total: 152250,
-    status: 'pago',
-    metodo: 'PIX',
-    vencimento: '20/03/2024',
-    pagoEm: '18/03/2024'
-  },
-  {
-    id: '2',
-    lote: 'Lote #1 - Imperador FIV',
-    leilao: 'Grande Leilão Nelore Elite 2024',
-    valor: 87500,
-    taxas: 4375,
-    total: 91875,
-    status: 'pendente',
-    metodo: 'Boleto',
-    vencimento: '25/03/2024'
-  },
-  {
-    id: '3',
-    lote: 'Lote #5 - Touro Campeão',
-    leilao: 'Leilão Angus Premium',
-    valor: 220000,
-    taxas: 11000,
-    total: 231000,
-    status: 'atrasado',
-    metodo: 'Boleto',
-    vencimento: '10/03/2024'
-  }
-]
+const pagamentos: { id: string; lote: string; leilao: string; valor: number; taxas: number; total: number; status: string; metodo: string; vencimento: string; pagoEm?: string }[] = []
 
 export default function PagamentosPage() {
   const statusConfig = {
@@ -148,7 +111,13 @@ export default function PagamentosPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagamentos.map((pagamento) => {
+              {pagamentos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                    Nenhum pagamento encontrado
+                  </TableCell>
+                </TableRow>
+              ) : pagamentos.map((pagamento) => {
                 const config = statusConfig[pagamento.status as keyof typeof statusConfig]
                 const Icon = config.icon
                 return (

@@ -17,11 +17,20 @@ export default function AdminLeiloesPage() {
         <h1 className="text-2xl font-bold text-foreground">Leilões (admin)</h1>
         <p className="mt-1 text-muted-foreground">Visão geral dos pregões na plataforma — dados de demonstração.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {lista.map((leilao) => (
-          <LeilaoCard key={leilao.id} leilao={leilao} />
-        ))}
-      </div>
+      {lista.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Gavel className="mb-3 h-10 w-10 text-muted-foreground/40" />
+            <p className="text-sm font-medium text-muted-foreground">Nenhum leilão cadastrado na plataforma</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {lista.map((leilao) => (
+            <LeilaoCard key={leilao.id} leilao={leilao} />
+          ))}
+        </div>
+      )}
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
           <Gavel className="h-10 w-10 text-muted-foreground" />
