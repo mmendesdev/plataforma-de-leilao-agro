@@ -50,6 +50,7 @@ const menuAdmin = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Usuários', href: '/dashboard/usuarios', icon: Users },
   { label: 'Leilões', href: '/dashboard/leiloes', icon: Gavel },
+  { label: 'Faturamento', href: '/dashboard/faturamento', icon: TrendingUp },
   { label: 'Pagamentos', href: '/dashboard/pagamentos', icon: CreditCard },
   { label: 'Relatórios', href: '/dashboard/relatorios', icon: BarChart3 },
   { label: 'Auditoria', href: '/dashboard/auditoria', icon: Shield },
@@ -85,19 +86,21 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-full flex-col">
-        <div className="p-4">
-          <div className="rounded-lg bg-sidebar-accent p-4">
-            <p className="text-sm text-sidebar-foreground/70">Saldo disponível</p>
-            <p className="text-2xl font-bold text-sidebar-foreground">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentUser.saldo)}
-            </p>
-            {currentUser.role === 'comprador' && (
-              <p className="mt-1 text-xs text-sidebar-foreground/60">
-                Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentUser.limiteCredito)}
+        {currentUser.role !== 'admin' && (
+          <div className="p-4">
+            <div className="rounded-lg bg-sidebar-accent p-4">
+              <p className="text-sm text-sidebar-foreground/70">Saldo disponível</p>
+              <p className="text-2xl font-bold text-sidebar-foreground">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentUser.saldo)}
               </p>
-            )}
+              {currentUser.role === 'comprador' && (
+                <p className="mt-1 text-xs text-sidebar-foreground/60">
+                  Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentUser.limiteCredito)}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <nav className="flex-1 space-y-1 p-4">
           {menu.map((item) => {
