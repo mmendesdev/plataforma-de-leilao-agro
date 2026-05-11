@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { LeilaoCard } from '@/components/leilao/leilao-card'
-import { mockLeiloes, categorias } from '@/lib/mock-data'
+import { categorias } from '@/lib/mock-data'
+import { useAppStore } from '@/lib/store'
 
 const features = [
   {
@@ -41,7 +42,8 @@ const stats = [
 ]
 
 export default function HomePage() {
-  const leiloesDestaque = mockLeiloes.filter(l => l.status === 'ao_vivo' || l.status === 'agendado').slice(0, 3)
+  const leiloes = useAppStore((s) => s.leiloes)
+  const leiloesDestaque = leiloes.filter(l => l.status === 'ao_vivo' || l.status === 'agendado').slice(0, 3)
 
   return (
     <div className="min-h-screen bg-background">

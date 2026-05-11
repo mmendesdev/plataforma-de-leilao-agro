@@ -31,6 +31,8 @@ interface AppState {
   // Favoritos
   favoritos: string[]
   toggleFavorito: (loteId: string) => void
+
+  adicionarLeilao: (leilao: Leilao) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -96,5 +98,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     favoritos: state.favoritos.includes(loteId)
       ? state.favoritos.filter(id => id !== loteId)
       : [...state.favoritos, loteId]
-  }))
+  })),
+
+  adicionarLeilao: (leilao) =>
+    set((state) => ({
+      leiloes: [leilao, ...state.leiloes],
+    })),
 }))

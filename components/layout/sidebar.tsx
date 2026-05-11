@@ -49,6 +49,7 @@ const menuLeiloeiro = [
 
 const menuAdmin = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Criar Leilão', href: '/dashboard/criar-leilao', icon: PlusCircle },
   { label: 'Usuários', href: '/dashboard/usuarios', icon: Users },
   { label: 'Leilões', href: '/dashboard/leiloes', icon: Gavel },
   { label: 'Pagamentos', href: '/dashboard/pagamentos', icon: CreditCard },

@@ -15,14 +15,16 @@ import {
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { LeilaoCard } from '@/components/leilao/leilao-card'
-import { mockLeiloes, categorias } from '@/lib/mock-data'
+import { categorias } from '@/lib/mock-data'
+import { useAppStore } from '@/lib/store'
 
 export default function LeiloesPage() {
+  const leiloes = useAppStore((s) => s.leiloes)
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todas')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
   const [busca, setBusca] = useState('')
 
-  const leiloesFiltrados = mockLeiloes.filter(leilao => {
+  const leiloesFiltrados = leiloes.filter(leilao => {
     const matchCategoria = filtroCategoria === 'todas' || leilao.categoria === filtroCategoria
     const matchStatus = filtroStatus === 'todos' || leilao.status === filtroStatus
     const matchBusca = leilao.titulo.toLowerCase().includes(busca.toLowerCase()) ||

@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Bell, Menu, Search, User, LogOut, Settings, Wallet, Heart } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Bell, Menu, Search, User, LogOut, Settings, Wallet, Heart, PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -15,8 +16,11 @@ import { Badge } from '@/components/ui/badge'
 import { useAppStore } from '@/lib/store'
 
 export function Header() {
-  const { currentUser, notificacoes, setSidebarOpen, sidebarOpen } = useAppStore()
+  const router = useRouter()
+  const { currentUser, notificacoes, setSidebarOpen, sidebarOpen, setCurrentUser } = useAppStore()
   const notificacoesNaoLidas = notificacoes.filter(n => !n.lida).length
+  const podeCriarLeilao =
+    currentUser?.role === 'leiloeiro' || currentUser?.role === 'admin'
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -75,6 +79,14 @@ export function Header() {
         <div className="ml-auto flex items-center gap-2">
           {currentUser ? (
             <>
+              {podeCriarLeilao && (
+                <Button size="sm" className="hidden gap-1.5 sm:inline-flex" asChild>
+                  <Link href="/dashboard/criar-leilao">
+                    <PlusCircle className="h-4 w-4" />
+                    Criar leilão
+                  </Link>
+                </Button>
+              )}
               <Button variant="ghost" size="icon" asChild>
                 <Link href="/dashboard/favoritos">
                   <Heart className="h-5 w-5" />
@@ -136,6 +148,12 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/dashboard/criar-leilao">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Criar leilão
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/dashboard/carteira">
                       <Wallet className="mr-2 h-4 w-4" />
                       Carteira
@@ -148,7 +166,14 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onSelect={() => {
+                      setCurrentUser(null)
+                      setSidebarOpen(false)
+                      router.push('/')
+                    }}
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sair
                   </DropdownMenuItem>

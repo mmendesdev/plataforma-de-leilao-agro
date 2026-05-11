@@ -1,8 +1,8 @@
 'use client'
 
-import { use, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, MapPin, Users, Clock } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -11,7 +11,8 @@ import { LiveStream } from '@/components/leilao/live-stream'
 import { BidPanel } from '@/components/leilao/bid-panel'
 import { LiveChat } from '@/components/leilao/live-chat'
 import { LoteCard } from '@/components/leilao/lote-card'
-import { mockLeiloes, mockLotes } from '@/lib/mock-data'
+import { useAppStore } from '@/lib/store'
+import type { Lote } from '@/lib/types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -21,8 +22,17 @@ interface PageProps {
 
 export default function LeilaoPage({ params }: PageProps) {
   const { id } = use(params)
-  const leilao = mockLeiloes.find(l => l.id === id) || mockLeiloes[0]
-  const [loteAtivo, setLoteAtivo] = useState(mockLotes.find(l => l.status === 'ativo') || mockLotes[0])
+  const leiloes = useAppStore((s) => s.leiloes)
+  const leilao = leiloes.find((l) => l.id === id)
+  const [loteAtivo, setLoteAtivo] = useState<Lote | null>(null)
+
+  useEffect(() => {
+    if (!leilao || leilao.lotes.length === 0) {
+      setLoteAtivo(null)
+      return
+    }
+    setLoteAtivo(leilao.lotes.find((l) => l.status === 'ativo') || leilao.lotes[0])
+  }, [leilao])
 
   const statusColors = {
     ao_vivo: 'bg-red-500 text-white',
@@ -36,6 +46,21 @@ export default function LeilaoPage({ params }: PageProps) {
     agendado: 'Agendado',
     encerrado: 'Encerrado',
     cancelado: 'Cancelado'
+  }
+
+  if (!leilao) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-xl font-semibold">Leilão não encontrado</h1>
+          <p className="mt-2 text-muted-foreground">Esse ID não existe na sessão atual.</p>
+          <Button asChild className="mt-6">
+            <Link href="/leiloes">Ver leilões</Link>
+          </Button>
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -98,7 +123,7 @@ export default function LeilaoPage({ params }: PageProps) {
               </TabsList>
 
               <TabsContent value="ativo" className="mt-4">
-                {loteAtivo && (
+                {loteAtivo ? (
                   <div className="grid gap-4 md:grid-cols-2">
                     <LoteCard lote={loteAtivo} />
                     <div className="rounded-lg border bg-card p-4">
@@ -114,7 +139,7 @@ export default function LeilaoPage({ params }: PageProps) {
                           <div className="pt-2">
                             <p className="font-medium">Vacinação:</p>
                             <div className="mt-1 flex flex-wrap gap-1">
-                              {loteAtivo.animais[0].vacinacao.map(v => (
+                              {(loteAtivo.animais[0].vacinacao ?? []).map(v => (
                                 <Badge key={v} variant="outline" className="text-xs">{v}</Badge>
                               ))}
                             </div>
@@ -123,19 +148,27 @@ export default function LeilaoPage({ params }: PageProps) {
                       )}
                     </div>
                   </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+                    Nenhum lote cadastrado neste leilão. Adicione lotes ao criar o pregão ou use outro leilão.
+                  </p>
                 )}
               </TabsContent>
 
               <TabsContent value="todos" className="mt-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {mockLotes.map(lote => (
-                    <LoteCard 
-                      key={lote.id} 
-                      lote={lote} 
-                      onSelect={() => setLoteAtivo(lote)}
-                    />
-                  ))}
-                </div>
+                {leilao.lotes.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {leilao.lotes.map((lote) => (
+                      <LoteCard
+                        key={lote.id}
+                        lote={lote}
+                        onSelect={() => setLoteAtivo(lote)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Não há lotes neste leilão.</p>
+                )}
               </TabsContent>
 
               <TabsContent value="info" className="mt-4">

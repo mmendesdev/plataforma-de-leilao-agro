@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Calendar, MapPin, Upload, Plus, Trash2, Save } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Calendar, MapPin, Upload, Plus, Trash2, Save, Link2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,17 +17,173 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { categorias } from '@/lib/mock-data'
+import { categorias, mockUsers } from '@/lib/mock-data'
+import { useAppStore } from '@/lib/store'
+import type { Leilao, Lote, Animal } from '@/lib/types'
+
+type LoteLinha = { id: number; nome: string; raca: string; preco: string }
+
+function linhasParaLotes(leilaoId: string, linhas: LoteLinha[], vendedorId: string): Lote[] {
+  if (linhas.length === 0) return []
+  return linhas.map((linha, i) => {
+    const preco = Number.parseFloat(linha.preco.replace(',', '.')) || 0
+    const animal: Animal = {
+      id: `animal-${leilaoId}-${i}-${Date.now()}`,
+      nome: linha.nome.trim() || `Animal ${i + 1}`,
+      categoria: 'corte',
+      raca: linha.raca.trim() || 'A definir',
+      sexo: 'macho',
+      idade: 0,
+      peso: 0,
+      vacinacao: [],
+      exames: [],
+      localizacao: '',
+      imagens: ['/placeholder.svg?height=400&width=600'],
+      descricao: '',
+    }
+    return {
+      id: `lot-${leilaoId}-${i}-${Date.now()}`,
+      leilaoId,
+      numero: i + 1,
+      animais: [animal],
+      precoInicial: preco,
+      precoAtual: preco,
+      incrementoMinimo: Math.max(500, Math.round(preco * 0.05) || 1000),
+      status: i === 0 ? 'ativo' : 'aguardando',
+      historico: [],
+      vendedorId,
+    }
+  })
+}
 
 export default function CriarLeilaoPage() {
-  const [lotes, setLotes] = useState<{ id: number; nome: string }[]>([])
+  const router = useRouter()
+  const { currentUser, adicionarLeilao } = useAppStore()
+
+  const [titulo, setTitulo] = useState('')
+  const [descricao, setDescricao] = useState('')
+  const [categoria, setCategoria] = useState(categorias[0] ?? 'Genética')
+  const [tipo, setTipo] = useState<'ao_vivo' | 'silencioso' | 'hibrido'>('ao_vivo')
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
+  const [localizacao, setLocalizacao] = useState('')
+  const [taxaPlataforma, setTaxaPlataforma] = useState('3')
+  const [taxaLeiloeiro, setTaxaLeiloeiro] = useState('2')
+  const [transmissaoUrl, setTransmissaoUrl] = useState('')
+
+  const [lotesLinhas, setLotesLinhas] = useState<LoteLinha[]>([])
+  const [imagemUrl, setImagemUrl] = useState('')
+  const [previewLocal, setPreviewLocal] = useState<string | null>(null)
+  const [statusResumo, setStatusResumo] = useState<'Rascunho' | 'Agendado' | 'Publicado'>('Rascunho')
+
+  const [salvando, setSalvando] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (previewLocal?.startsWith('blob:')) URL.revokeObjectURL(previewLocal)
+    }
+  }, [previewLocal])
+
+  const responsavel = useMemo(() => {
+    if (currentUser && (currentUser.role === 'leiloeiro' || currentUser.role === 'admin')) {
+      return currentUser
+    }
+    return mockUsers[1]
+  }, [currentUser])
+
+  const handleCapaFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (previewLocal?.startsWith('blob:')) URL.revokeObjectURL(previewLocal)
+    setPreviewLocal(URL.createObjectURL(file))
+  }
+
+  const capaExibicao = previewLocal || imagemUrl.trim() || '/placeholder.svg?height=400&width=800'
+
+  const imagemPersistida = () => {
+    const u = imagemUrl.trim()
+    if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('/')) return u
+    return '/placeholder.svg?height=400&width=800'
+  }
 
   const adicionarLote = () => {
-    setLotes([...lotes, { id: Date.now(), nome: `Lote ${lotes.length + 1}` }])
+    setLotesLinhas([...lotesLinhas, { id: Date.now(), nome: '', raca: '', preco: '' }])
   }
 
   const removerLote = (id: number) => {
-    setLotes(lotes.filter(l => l.id !== id))
+    setLotesLinhas(lotesLinhas.filter((l) => l.id !== id))
+  }
+
+  const atualizarLote = (id: number, campo: keyof Omit<LoteLinha, 'id'>, valor: string) => {
+    setLotesLinhas(lotesLinhas.map((l) => (l.id === id ? { ...l, [campo]: valor } : l)))
+  }
+
+  const montarLeilao = (publicar: boolean): Leilao | null => {
+    const t = titulo.trim()
+    if (!t) {
+      toast.error('Informe o título do leilão.')
+      return null
+    }
+
+    const id = `lei-${Date.now()}`
+    const inicioIso = dataInicio
+      ? new Date(dataInicio).toISOString()
+      : new Date(Date.now() + 86400000).toISOString()
+    const fimIso = dataFim ? new Date(dataFim).toISOString() : undefined
+
+    const txP = Number.parseFloat(taxaPlataforma.replace(',', '.')) || 3
+    const txL = Number.parseFloat(taxaLeiloeiro.replace(',', '.')) || 2
+
+    const status: Leilao['status'] = publicar
+      ? tipo === 'ao_vivo'
+        ? 'ao_vivo'
+        : 'agendado'
+      : 'agendado'
+
+    const lotes = linhasParaLotes(id, lotesLinhas, responsavel.id)
+
+    return {
+      id,
+      titulo: t,
+      descricao: descricao.trim() || 'Sem descrição.',
+      tipo,
+      status,
+      leiloeiroId: responsavel.id,
+      leiloeiro: responsavel,
+      dataInicio: inicioIso,
+      dataFim: fimIso,
+      imagem: imagemPersistida(),
+      lotes,
+      categoria,
+      localizacao: localizacao.trim() || 'A definir',
+      transmissaoUrl: transmissaoUrl.trim() || undefined,
+      audiencia: publicar && tipo === 'ao_vivo' ? 1 : 0,
+      taxaPlataforma: txP,
+      taxaLeiloeiro: txL,
+    }
+  }
+
+  const handleSalvarRascunho = async () => {
+    const leilao = montarLeilao(false)
+    if (!leilao) return
+    setSalvando(true)
+    await new Promise((r) => setTimeout(r, 400))
+    adicionarLeilao(leilao)
+    setStatusResumo('Agendado')
+    setSalvando(false)
+    toast.success('Rascunho salvo. O leilão aparece em Leilões e no dashboard.')
+  }
+
+  const handlePublicar = async () => {
+    const leilao = montarLeilao(true)
+    if (!leilao) return
+    setSalvando(true)
+    await new Promise((r) => setTimeout(r, 400))
+    adicionarLeilao(leilao)
+    setStatusResumo('Publicado')
+    setSalvando(false)
+    toast.success('Leilão publicado!')
+    router.push(`/leilao/${leilao.id}`)
   }
 
   return (
@@ -38,9 +196,7 @@ export default function CriarLeilaoPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Formulário Principal */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Informações Básicas */}
           <Card>
             <CardHeader>
               <CardTitle>Informações Básicas</CardTitle>
@@ -48,33 +204,43 @@ export default function CriarLeilaoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Título do Leilão</Label>
-                <Input placeholder="Ex: Grande Leilão Nelore Elite 2024" />
+                <Label htmlFor="titulo">Título do Leilão</Label>
+                <Input
+                  id="titulo"
+                  placeholder="Ex: Grande Leilão Nelore Elite 2024"
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea 
+                <Label htmlFor="desc">Descrição</Label>
+                <Textarea
+                  id="desc"
                   placeholder="Descreva o leilão, destaque os principais animais e atrativos..."
                   rows={4}
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Categoria</Label>
-                  <Select>
+                  <Select value={categoria} onValueChange={setCategoria}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categorias.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {categorias.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo de Leilão</Label>
-                  <Select>
+                  <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
@@ -89,7 +255,6 @@ export default function CriarLeilaoPage() {
             </CardContent>
           </Card>
 
-          {/* Data e Local */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -100,52 +265,76 @@ export default function CriarLeilaoPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Data de Início</Label>
-                  <Input type="datetime-local" />
+                  <Label htmlFor="dt-inicio">Data de Início</Label>
+                  <Input
+                    id="dt-inicio"
+                    type="datetime-local"
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de Término (opcional)</Label>
-                  <Input type="datetime-local" />
+                  <Label htmlFor="dt-fim">Data de Término (opcional)</Label>
+                  <Input
+                    id="dt-fim"
+                    type="datetime-local"
+                    value={dataFim}
+                    onChange={(e) => setDataFim(e.target.value)}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label htmlFor="loc" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   Localização
                 </Label>
-                <Input placeholder="Ex: Uberaba, MG" />
+                <Input
+                  id="loc"
+                  placeholder="Ex: Uberaba, MG"
+                  value={localizacao}
+                  onChange={(e) => setLocalizacao(e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
 
-          {/* Lotes */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Lotes do Leilão</CardTitle>
-                <CardDescription>Adicione os lotes que serão leiloados</CardDescription>
+                <CardDescription>Adicione os lotes que serão leiloados (opcional na demo)</CardDescription>
               </div>
-              <Button onClick={adicionarLote} className="gap-2">
+              <Button type="button" onClick={adicionarLote} className="gap-2">
                 <Plus className="h-4 w-4" />
                 Adicionar Lote
               </Button>
             </CardHeader>
             <CardContent>
-              {lotes.length > 0 ? (
+              {lotesLinhas.length > 0 ? (
                 <div className="space-y-4">
-                  {lotes.map((lote, index) => (
+                  {lotesLinhas.map((lote, index) => (
                     <div key={lote.id} className="flex items-center gap-4 rounded-lg border p-4">
                       <Badge variant="outline">#{index + 1}</Badge>
                       <div className="flex-1 grid gap-4 md:grid-cols-3">
-                        <Input placeholder="Nome do animal" />
-                        <Input placeholder="Raça" />
-                        <Input type="number" placeholder="Preço inicial (R$)" />
+                        <Input
+                          placeholder="Nome do animal"
+                          value={lote.nome}
+                          onChange={(e) => atualizarLote(lote.id, 'nome', e.target.value)}
+                        />
+                        <Input
+                          placeholder="Raça"
+                          value={lote.raca}
+                          onChange={(e) => atualizarLote(lote.id, 'raca', e.target.value)}
+                        />
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Preço inicial (R$)"
+                          value={lote.preco}
+                          onChange={(e) => atualizarLote(lote.id, 'preco', e.target.value)}
+                        />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => removerLote(lote.id)}
-                      >
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removerLote(lote.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -162,27 +351,61 @@ export default function CriarLeilaoPage() {
             </CardContent>
           </Card>
 
-          {/* Imagem de Capa */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
                 Imagem de Capa
               </CardTitle>
+              <CardDescription>
+                Use uma URL pública ou caminho em <code className="rounded bg-muted px-1 text-xs">public/</code> para a
+                capa aparecer nas listagens. Só upload local mostra aqui na prévia; ao salvar, usamos placeholder se não
+                houver URL.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center rounded-lg border-2 border-dashed p-12">
-                <div className="text-center">
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-                  <p className="mt-2 font-medium">Arraste uma imagem ou clique para enviar</p>
-                  <p className="text-sm text-muted-foreground">PNG, JPG até 5MB</p>
-                </div>
+            <CardContent className="space-y-4">
+              <div className="overflow-hidden rounded-lg border bg-muted/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={capaExibicao}
+                  alt="Pré-visualização da capa do leilão"
+                  className="aspect-video w-full object-cover"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="capa-arquivo" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Arquivo do seu computador
+                </Label>
+                <Input
+                  id="capa-arquivo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="cursor-pointer"
+                  onChange={handleCapaFile}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="capa-url" className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Ou URL da imagem (http ou caminho em /public)
+                </Label>
+                <Input
+                  id="capa-url"
+                  type="text"
+                  placeholder="https://... ou /minha-foto.jpg"
+                  value={imagemUrl}
+                  onChange={(e) => {
+                    setImagemUrl(e.target.value)
+                    if (previewLocal?.startsWith('blob:')) URL.revokeObjectURL(previewLocal)
+                    setPreviewLocal(null)
+                  }}
+                />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar de Configurações */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -190,12 +413,28 @@ export default function CriarLeilaoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Taxa da Plataforma (%)</Label>
-                <Input type="number" defaultValue="3" min="0" max="10" step="0.1" />
+                <Label htmlFor="tx-p">Taxa da Plataforma (%)</Label>
+                <Input
+                  id="tx-p"
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  value={taxaPlataforma}
+                  onChange={(e) => setTaxaPlataforma(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label>Sua Comissão (%)</Label>
-                <Input type="number" defaultValue="2" min="0" max="10" step="0.1" />
+                <Label htmlFor="tx-l">Sua Comissão (%)</Label>
+                <Input
+                  id="tx-l"
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  value={taxaLeiloeiro}
+                  onChange={(e) => setTaxaLeiloeiro(e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -206,8 +445,13 @@ export default function CriarLeilaoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>URL de Transmissão (opcional)</Label>
-                <Input placeholder="rtmp://..." />
+                <Label htmlFor="stream">URL de Transmissão (opcional)</Label>
+                <Input
+                  id="stream"
+                  placeholder="rtmp://..."
+                  value={transmissaoUrl}
+                  onChange={(e) => setTransmissaoUrl(e.target.value)}
+                />
                 <p className="text-xs text-muted-foreground">
                   Use para integrar com OBS ou outro software de streaming
                 </p>
@@ -222,21 +466,32 @@ export default function CriarLeilaoPage() {
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total de Lotes</span>
-                <span className="font-medium">{lotes.length}</span>
+                <span className="font-medium">{lotesLinhas.length}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Status</span>
-                <Badge variant="secondary">Rascunho</Badge>
+                <Badge variant="secondary">{statusResumo}</Badge>
               </div>
             </CardContent>
           </Card>
 
           <div className="flex flex-col gap-2">
-            <Button className="w-full gap-2">
+            <Button
+              type="button"
+              className="w-full gap-2"
+              disabled={salvando}
+              onClick={handleSalvarRascunho}
+            >
               <Save className="h-4 w-4" />
               Salvar Rascunho
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={salvando}
+              onClick={handlePublicar}
+            >
               Publicar Leilão
             </Button>
           </div>

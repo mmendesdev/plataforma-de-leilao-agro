@@ -5,10 +5,11 @@ import { Gavel } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LeilaoCard } from '@/components/leilao/leilao-card'
-import { mockLeiloes } from '@/lib/mock-data'
+import { useAppStore } from '@/lib/store'
 
 export default function AdminLeiloesPage() {
-  const lista = mockLeiloes.slice(0, 6)
+  const leiloes = useAppStore((s) => s.leiloes)
+  const lista = leiloes.slice(0, 6)
 
   return (
     <div className="space-y-6">
