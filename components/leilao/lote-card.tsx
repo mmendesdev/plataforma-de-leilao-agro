@@ -38,8 +38,8 @@ export function LoteCard({ lote, onSelect, actionLabel, actionDisabled }: LoteCa
   }
 
   return (
-    <Card className="group overflow-hidden transition-all hover:shadow-lg min-h-[500px] flex flex-col">
-      <div className="relative aspect-[4/3] overflow-hidden">
+    <Card className="group overflow-hidden transition-all hover:shadow-lg flex flex-col h-[580px]">
+      <div className="relative h-48 overflow-hidden">
         <Image
           src={animal.imagens[0]}
           alt={animal.nome}

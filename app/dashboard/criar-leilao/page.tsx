@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, MapPin, Upload, Plus, Trash2, Save, Link2 } from 'lucide-react'
+import { Calendar, MapPin, Upload, Plus, Trash2, Save, Link2, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -77,6 +77,7 @@ export default function CriarLeilaoPage() {
   const [imagemUrl, setImagemUrl] = useState('')
   const [previewLocal, setPreviewLocal] = useState<string | null>(null)
   const [statusResumo, setStatusResumo] = useState<'Rascunho' | 'Agendado' | 'Publicado'>('Rascunho')
+  const [buscaLotes, setBuscaLotes] = useState('')
 
   const [salvando, setSalvando] = useState(false)
 
@@ -346,28 +347,72 @@ export default function CriarLeilaoPage() {
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent>
-              {lotesDisponiveis.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {lotesDisponiveis.map((lote) => (
-                    <div key={lote.id} className="relative">
-                      <LoteCard
-                        lote={lote}
-                        actionLabel={selectedLotes.some((item) => item.id === lote.id) ? 'Selecionado' : 'Selecionar lote'}
-                        actionDisabled={selectedLotes.some((item) => item.id === lote.id)}
-                        onSelect={() => selecionarLote(lote)}
-                      />
-                      {selectedLotes.some((item) => item.id === lote.id) && (
-                        <div className="absolute right-3 top-3 rounded-full bg-primary px-2 py-1 text-xs text-primary-foreground">
-                          Selecionado
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por lote, animal ou produtor..."
+                  value={buscaLotes}
+                  onChange={(e) => setBuscaLotes(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {lotesDisponiveis.filter(lote => {
+                const searchLower = buscaLotes.toLowerCase()
+                return (
+                  lote.numero.toString().includes(searchLower) ||
+                  lote.animais[0]?.nome.toLowerCase().includes(searchLower) ||
+                  lote.animais[0]?.raca.toLowerCase().includes(searchLower)
+                )
+              }).length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {lotesDisponiveis
+                    .filter(lote => {
+                      const searchLower = buscaLotes.toLowerCase()
+                      return (
+                        lote.numero.toString().includes(searchLower) ||
+                        lote.animais[0]?.nome.toLowerCase().includes(searchLower) ||
+                        lote.animais[0]?.raca.toLowerCase().includes(searchLower)
+                      )
+                    })
+                    .map((lote) => {
+                      const isSelected = selectedLotes.some((item) => item.id === lote.id)
+                      return (
+                        <div
+                          key={lote.id}
+                          className={`flex items-center justify-between rounded-lg border p-4 cursor-pointer transition-colors ${
+                            isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                          }`}
+                          onClick={() => selecionarLote(lote)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <p className="font-semibold text-foreground">Lote #{lote.numero}</p>
+                              <p className="text-sm text-muted-foreground">{lote.animais[0]?.nome}</p>
+                              <p className="text-xs text-muted-foreground">({lote.animais[0]?.raca})</p>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Preço: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lote.precoAtual)} • Status: {lote.status}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={isSelected ? 'default' : 'outline'}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              selecionarLote(lote)
+                            }}
+                          >
+                            {isSelected ? 'Selecionado' : 'Selecionar'}
+                          </Button>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      )
+                    })}
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
-                  Nenhum lote de produtor disponível no momento.
+                  Nenhum lote de produtor disponível ou encontrado.
                 </div>
               )}
             </CardContent>
@@ -383,11 +428,12 @@ export default function CriarLeilaoPage() {
                 {selectedLotes.map((lote) => (
                   <div key={lote.id} className="flex items-center justify-between rounded-lg border p-4">
                     <div>
-                      <p className="font-medium">{lote.animais[0]?.nome || `Lote ${lote.numero}`}</p>
-                      <p className="text-sm text-muted-foreground">{lote.animais[0]?.raca}</p>
+                      <p className="font-semibold text-foreground">Lote #{lote.numero}</p>
+                      <p className="text-sm text-muted-foreground">{lote.animais[0]?.nome || `Lote ${lote.numero}`}</p>
+                      <p className="text-xs text-muted-foreground">{lote.animais[0]?.raca}</p>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => removerLoteSelecionado(lote.id)}>
-                      Remover
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -522,20 +568,12 @@ export default function CriarLeilaoPage() {
           <div className="flex flex-col gap-2">
             <Button
               type="button"
+              variant="default"
               className="w-full gap-2"
-              disabled={salvando}
-              onClick={handleSalvarRascunho}
-            >
-              <Save className="h-4 w-4" />
-              Salvar Rascunho
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
               disabled={salvando}
               onClick={handlePublicar}
             >
+              <Save className="h-4 w-4" />
               Publicar Leilão
             </Button>
           </div>
