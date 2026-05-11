@@ -128,48 +128,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {(currentUser?.role === 'comprador' || currentUser?.role === 'produtor') && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium text-foreground">Cadastrar um novo pregão</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                O item &quot;Criar Leilão&quot; na barra lateral aparece para o perfil{' '}
-                <strong className="text-foreground">leiloeiro</strong>. Você pode abrir o formulário direto (demo) ou entrar
-                como leiloeiro em <Link href="/login" className="text-primary underline-offset-4 hover:underline">Entrar</Link>{' '}
-                → botão <strong className="text-foreground">Leiloeiro</strong>.
-              </p>
-            </div>
-            <Button asChild className="shrink-0 gap-2">
-              <Link href="/dashboard/criar-leilao">
-                <PlusCircle className="h-4 w-4" />
-                Abrir criar leilão
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {(currentUser?.role === 'leiloeiro' || currentUser?.role === 'admin') && (
-        <Card>
-          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium text-foreground">Novo leilão</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Preencha dados, lotes e imagem de capa. Também há um atalho &quot;Criar leilão&quot; no topo da página (ao lado
-                do coração).
-              </p>
-            </div>
-            <Button asChild className="shrink-0 gap-2">
-              <Link href="/dashboard/criar-leilao">
-                <PlusCircle className="h-4 w-4" />
-                Criar leilão
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {getStats().map((stat) => (

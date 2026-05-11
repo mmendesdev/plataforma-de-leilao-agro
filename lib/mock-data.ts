@@ -13,7 +13,7 @@ export const mockUsers: User[] = [
     estado: 'MG',
     verificado: true,
     limiteCredito: 500000,
-    saldo: 125000,
+    saldo: 0,
     scoreConfiabilidade: 98,
     criadoEm: '2023-01-15',
     fazenda: 'Fazenda Boa Vista'
@@ -30,7 +30,7 @@ export const mockUsers: User[] = [
     estado: 'SP',
     verificado: true,
     limiteCredito: 0,
-    saldo: 45000,
+    saldo: 0,
     scoreConfiabilidade: 100,
     criadoEm: '2022-06-20'
   },
@@ -46,7 +46,7 @@ export const mockUsers: User[] = [
     estado: 'SP',
     verificado: true,
     limiteCredito: 750000,
-    saldo: 320000,
+    saldo: 0,
     scoreConfiabilidade: 95,
     criadoEm: '2023-03-10',
     fazenda: 'Fazenda Santa Clara'

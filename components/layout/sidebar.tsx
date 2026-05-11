@@ -43,13 +43,11 @@ const menuLeiloeiro = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Criar Leilão', href: '/dashboard/criar-leilao', icon: PlusCircle },
   { label: 'Meus Leilões', href: '/dashboard/meus-leiloes', icon: Gavel },
-  { label: 'Transmissões', href: '/dashboard/transmissoes', icon: Video },
   { label: 'Faturamento', href: '/dashboard/faturamento', icon: Wallet },
 ]
 
 const menuAdmin = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Criar Leilão', href: '/dashboard/criar-leilao', icon: PlusCircle },
   { label: 'Usuários', href: '/dashboard/usuarios', icon: Users },
   { label: 'Leilões', href: '/dashboard/leiloes', icon: Gavel },
   { label: 'Pagamentos', href: '/dashboard/pagamentos', icon: CreditCard },

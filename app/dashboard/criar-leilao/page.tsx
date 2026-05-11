@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { categorias, mockUsers } from '@/lib/mock-data'
+import { categorias, mockLotes, mockUsers } from '@/lib/mock-data'
 import { useAppStore } from '@/lib/store'
+import { LoteCard } from '@/components/leilao/lote-card'
 import type { Leilao, Lote, Animal } from '@/lib/types'
 
 type LoteLinha = { id: number; nome: string; raca: string; preco: string }
@@ -72,6 +73,7 @@ export default function CriarLeilaoPage() {
   const [transmissaoUrl, setTransmissaoUrl] = useState('')
 
   const [lotesLinhas, setLotesLinhas] = useState<LoteLinha[]>([])
+  const [selectedLotes, setSelectedLotes] = useState<Lote[]>([])
   const [imagemUrl, setImagemUrl] = useState('')
   const [previewLocal, setPreviewLocal] = useState<string | null>(null)
   const [statusResumo, setStatusResumo] = useState<'Rascunho' | 'Agendado' | 'Publicado'>('Rascunho')
@@ -85,7 +87,7 @@ export default function CriarLeilaoPage() {
   }, [previewLocal])
 
   const responsavel = useMemo(() => {
-    if (currentUser && (currentUser.role === 'leiloeiro' || currentUser.role === 'admin')) {
+    if (currentUser?.role === 'leiloeiro') {
       return currentUser
     }
     return mockUsers[1]
@@ -96,6 +98,20 @@ export default function CriarLeilaoPage() {
     if (!file) return
     if (previewLocal?.startsWith('blob:')) URL.revokeObjectURL(previewLocal)
     setPreviewLocal(URL.createObjectURL(file))
+  }
+
+  const lotesDisponiveis = mockLotes.filter(
+    (lote) => lote.status !== 'vendido' && lote.status !== 'cancelado'
+  )
+
+  const selecionarLote = (lote: Lote) => {
+    setSelectedLotes((prev) =>
+      prev.some((item) => item.id === lote.id) ? prev : [...prev, lote]
+    )
+  }
+
+  const removerLoteSelecionado = (loteId: string) => {
+    setSelectedLotes((prev) => prev.filter((lote) => lote.id !== loteId))
   }
 
   const capaExibicao = previewLocal || imagemUrl.trim() || '/placeholder.svg?height=400&width=800'
@@ -140,7 +156,16 @@ export default function CriarLeilaoPage() {
         : 'agendado'
       : 'agendado'
 
-    const lotes = linhasParaLotes(id, lotesLinhas, responsavel.id)
+    const lotes = selectedLotes.length > 0
+      ? selectedLotes.map((lote, index) => ({
+          ...lote,
+          id: `${lote.id}-${id}-${index}`,
+          leilaoId: id,
+          status: publicar ? ('ativo' as const) : ('aguardando' as const),
+          precoAtual: lote.precoAtual ?? lote.precoInicial,
+          historico: lote.historico ?? [],
+        }))
+      : linhasParaLotes(id, lotesLinhas, responsavel.id)
 
     return {
       id,
@@ -184,6 +209,20 @@ export default function CriarLeilaoPage() {
     setSalvando(false)
     toast.success('Leilão publicado!')
     router.push(`/leilao/${leilao.id}`)
+  }
+
+  if (!currentUser || currentUser.role !== 'leiloeiro') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Acesso não autorizado</h1>
+          <p className="mt-1 text-muted-foreground">
+            Somente usuários com perfil de <strong>Leiloeiro</strong> podem criar leilões.
+          </p>
+        </div>
+        <Button onClick={() => router.push('/dashboard')}>Voltar ao dashboard</Button>
+      </div>
+    )
   }
 
   return (
@@ -299,57 +338,62 @@ export default function CriarLeilaoPage() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <div>
-                <CardTitle>Lotes do Leilão</CardTitle>
-                <CardDescription>Adicione os lotes que serão leiloados (opcional na demo)</CardDescription>
+                <CardTitle>Lotes de produtores</CardTitle>
+                <CardDescription>
+                  Selecione anúncios de produtores para incluir no leilão. Este fluxo reaproveita lotes já cadastrados.
+                </CardDescription>
               </div>
-              <Button type="button" onClick={adicionarLote} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar Lote
-              </Button>
             </CardHeader>
             <CardContent>
-              {lotesLinhas.length > 0 ? (
-                <div className="space-y-4">
-                  {lotesLinhas.map((lote, index) => (
-                    <div key={lote.id} className="flex items-center gap-4 rounded-lg border p-4">
-                      <Badge variant="outline">#{index + 1}</Badge>
-                      <div className="flex-1 grid gap-4 md:grid-cols-3">
-                        <Input
-                          placeholder="Nome do animal"
-                          value={lote.nome}
-                          onChange={(e) => atualizarLote(lote.id, 'nome', e.target.value)}
-                        />
-                        <Input
-                          placeholder="Raça"
-                          value={lote.raca}
-                          onChange={(e) => atualizarLote(lote.id, 'raca', e.target.value)}
-                        />
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="Preço inicial (R$)"
-                          value={lote.preco}
-                          onChange={(e) => atualizarLote(lote.id, 'preco', e.target.value)}
-                        />
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removerLote(lote.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+              {lotesDisponiveis.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {lotesDisponiveis.map((lote) => (
+                    <div key={lote.id} className="relative">
+                      <LoteCard
+                        lote={lote}
+                        actionLabel={selectedLotes.some((item) => item.id === lote.id) ? 'Selecionado' : 'Selecionar lote'}
+                        actionDisabled={selectedLotes.some((item) => item.id === lote.id)}
+                        onSelect={() => selecionarLote(lote)}
+                      />
+                      {selectedLotes.some((item) => item.id === lote.id) && (
+                        <div className="absolute right-3 top-3 rounded-full bg-primary px-2 py-1 text-xs text-primary-foreground">
+                          Selecionado
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-muted-foreground">Nenhum lote adicionado</p>
-                  <p className="text-sm text-muted-foreground">
-                    Clique em &quot;Adicionar Lote&quot; para começar
-                  </p>
+                <div className="py-8 text-center text-muted-foreground">
+                  Nenhum lote de produtor disponível no momento.
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {selectedLotes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Lotes selecionados</CardTitle>
+                <CardDescription>Os lotes escolhidos serão usados no leilão.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {selectedLotes.map((lote) => (
+                  <div key={lote.id} className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                      <p className="font-medium">{lote.animais[0]?.nome || `Lote ${lote.numero}`}</p>
+                      <p className="text-sm text-muted-foreground">{lote.animais[0]?.raca}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => removerLoteSelecionado(lote.id)}>
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

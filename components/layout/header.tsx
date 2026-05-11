@@ -19,8 +19,7 @@ export function Header() {
   const router = useRouter()
   const { currentUser, notificacoes, setSidebarOpen, sidebarOpen, setCurrentUser } = useAppStore()
   const notificacoesNaoLidas = notificacoes.filter(n => !n.lida).length
-  const podeCriarLeilao =
-    currentUser?.role === 'leiloeiro' || currentUser?.role === 'admin'
+  const podeCriarLeilao = currentUser?.role === 'leiloeiro'
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -147,12 +146,14 @@ export function Header() {
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/criar-leilao">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Criar leilão
-                    </Link>
-                  </DropdownMenuItem>
+                  {podeCriarLeilao && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/criar-leilao">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Criar leilão
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/carteira">
                       <Wallet className="mr-2 h-4 w-4" />

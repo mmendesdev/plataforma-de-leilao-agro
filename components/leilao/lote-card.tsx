@@ -12,9 +12,11 @@ import { cn } from '@/lib/utils'
 interface LoteCardProps {
   lote: Lote
   onSelect?: () => void
+  actionLabel?: string
+  actionDisabled?: boolean
 }
 
-export function LoteCard({ lote, onSelect }: LoteCardProps) {
+export function LoteCard({ lote, onSelect, actionLabel, actionDisabled }: LoteCardProps) {
   const { favoritos, toggleFavorito } = useAppStore()
   const isFavorito = favoritos.includes(lote.id)
   const animal = lote.animais[0]
@@ -36,7 +38,7 @@ export function LoteCard({ lote, onSelect }: LoteCardProps) {
   }
 
   return (
-    <Card className="group overflow-hidden transition-all hover:shadow-lg">
+    <Card className="group overflow-hidden transition-all hover:shadow-lg min-h-[500px] flex flex-col">
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
           src={animal.imagens[0]}
@@ -70,7 +72,7 @@ export function LoteCard({ lote, onSelect }: LoteCardProps) {
         </Button>
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex-1 flex flex-col">
         <div className="flex items-start justify-between">
           <div>
             <h3 className="font-semibold text-foreground">{animal.nome}</h3>
@@ -118,9 +120,9 @@ export function LoteCard({ lote, onSelect }: LoteCardProps) {
           )}
         </div>
 
-        {onSelect && lote.status === 'ativo' && (
-          <Button onClick={onSelect} className="mt-3 w-full">
-            Dar Lance
+        {(onSelect && (actionLabel ? true : lote.status === 'ativo')) && (
+          <Button onClick={onSelect} className="mt-3 w-full" disabled={actionDisabled}>
+            {actionLabel ?? 'Dar Lance'}
           </Button>
         )}
       </CardContent>
