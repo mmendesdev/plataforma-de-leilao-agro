@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { User, Leilao, Lote, Lance, Notificacao } from './types'
+import { mockLeiloes, mockLotes } from './mock-data'
 
 interface AppState {
   // User
@@ -39,12 +40,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCurrentUser: (user) => set({ currentUser: user }),
   
   // Leilões
-  leiloes: [],
+  leiloes: mockLeiloes,
   leilaoAtivo: null,
   setLeilaoAtivo: (leilao) => set({ leilaoAtivo: leilao }),
-  
+
   // Lotes
-  lotes: [],
+  lotes: mockLotes,
   loteAtivo: null,
   setLoteAtivo: (lote) => set({ loteAtivo: lote }),
   

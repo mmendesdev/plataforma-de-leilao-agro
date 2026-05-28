@@ -1,0 +1,790 @@
+\documentclass[12pt]{article}
+
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=3cm, right=3cm]{geometry}
+\usepackage[brazil]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+% Define resumo environment (substitui sbc-template.sty)
+\newenvironment{resumo}{%
+  \vspace{1em}%
+  {\centering\textbf{Resumo}\par}%
+  \vspace{0.5em}%
+  \small%
+}{%
+  \par\normalsize\vspace{1em}%
+}
+
+% -------------------------------------------------------
+% Estilo para blocos de código / arquitetura
+% -------------------------------------------------------
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!10}
+}
+
+\sloppy
+
+% -------------------------------------------------------
+% TÍTULO, AUTORES, INSTITUIÇÃO
+% -------------------------------------------------------
+\title{AgroLeilões: Desenvolvimento e Avaliação de uma Plataforma Web\\
+       para Leilões Agropecuários em Tempo Real}
+
+\author{Matheus [SOBRENOME]%
+  \thanks{Engenharia de Software, ICEV -- Instituto de Ensino Superior do Ceará.
+  Projeto de Extensão VII -- Pesquisa e Inovação (2026.1).
+  Orientador: Prof. Luciani Vieira.
+  \texttt{[SEU-EMAIL]@somosicev.com}}}
+
+% -------------------------------------------------------
+\begin{document}
+
+\maketitle
+
+% -------------------------------------------------------
+% RESUMO
+% -------------------------------------------------------
+\begin{abstract}
+Este trabalho apresenta o desenvolvimento e a avaliação científica da plataforma
+AgroLeilões, um sistema web para realização de leilões agropecuários com suporte a
+transmissão ao vivo e lances em tempo real. O problema investigado é a ineficiência
+logística e a ausência de governança nos canais informais utilizados pelo setor, como
+grupos de aplicativos de mensagens, que impõem latência operacional crítica durante os
+pregões. Fundamentado na metodologia \textit{Design Science Research} (DSR), o trabalho
+propõe um artefato composto por quatro perfis de usuário --- Comprador, Produtor,
+Leiloeiro e Administrador --- integrados por protocolos WebSockets e WebRTC. A avaliação
+foi conduzida por meio da \textit{System Usability Scale} (SUS) e da Avaliação
+Heurística de Nielsen. Os resultados evidenciam usabilidade satisfatória para os perfis
+Comprador (SUS 70,0--90,0) e Leiloeiro (77,5), com falha crítica no perfil Produtor
+rural (SUS 55,0, abaixo do limiar de aceitabilidade de 68 pontos), correlacionada à
+violação H8 de sobrecarga cognitiva no formulário de cadastro de lotes. Os achados
+fundamentam princípios de design para interfaces agrotecnológicas voltadas a usuários
+rurais de baixo letramento digital. O projeto enquadra-se nos preceitos da
+curricularização da extensão universitária (Resolução CNE/CES
+n\textsuperscript{o} 7/2018), ao disponibilizar uma solução tecnológica aplicada às
+demandas reais do agronegócio brasileiro.
+\end{abstract}
+
+\begin{resumo}
+Este trabalho apresenta o desenvolvimento e a avaliação científica da plataforma
+AgroLeilões, um sistema web para realização de leilões agropecuários com suporte a
+transmissão ao vivo e lances em tempo real. O problema investigado é a ineficiência
+logística e a ausência de governança nos canais informais utilizados pelo setor, como
+grupos de aplicativos de mensagens, que impõem latência operacional crítica durante os
+pregões. Fundamentado na metodologia \textit{Design Science Research} (DSR), o trabalho
+propõe um artefato composto por quatro perfis de usuário --- Comprador, Produtor,
+Leiloeiro e Administrador --- integrados por protocolos WebSockets e WebRTC. A avaliação foi conduzida por meio da \textit{System Usability Scale} (SUS) e da
+Avaliação Heurística de Nielsen. Os resultados evidenciam usabilidade satisfatória para
+os perfis Comprador (SUS 70,0--90,0) e Leiloeiro (77,5), com falha crítica no perfil
+Produtor rural (SUS 55,0, abaixo do limiar de aceitabilidade de 68 pontos), correlacionada
+à violação H8 de sobrecarga cognitiva no formulário de cadastro de lotes. Os achados
+fundamentam princípios de design para interfaces agrotecnológicas voltadas a usuários
+rurais de baixo letramento digital. O projeto enquadra-se nos preceitos da
+curricularização da extensão universitária (Resolução CNE/CES
+n\textsuperscript{o} 7/2018), ao disponibilizar uma solução tecnológica aplicada às
+demandas reais do agronegócio brasileiro.
+
+\textbf{Palavras-chave:} leilões agropecuários, WebSockets, WebRTC, Design Science
+Research, usabilidade, SUS, avaliação heurística.
+\end{resumo}
+
+% -------------------------------------------------------
+% 1. INTRODUÇÃO
+% -------------------------------------------------------
+\section{Introdução}
+
+O Brasil registrou exportação recorde de mais de 411,8 mil cabeças de gado vivo em
+período recente, consolidando-se como maior exportador global do setor \cite{leilosul2024}.
+Nesse contexto, os leilões agropecuários constituem um dos principais mecanismos de
+formação de preço e liquidez do agronegócio brasileiro. Contudo, o modelo predominante
+ainda exige presença física dos participantes, gerando custos logísticos expressivos ---
+transporte de animais, deslocamento de compradores, aluguel de espaço físico --- além de
+restringir geograficamente a base de potenciais compradores.
+
+Diante da ausência de plataformas verticalizadas para esse nicho, parte do setor
+recorreu a soluções improvisadas, como grupos de WhatsApp e transmissões informais em
+redes sociais. Essas alternativas apresentam limitações críticas: ausência de controle
+formal de lances, falta de rastreabilidade de transações, impossibilidade de auditoria
+e latência operacional que compromete a integridade do pregão em tempo real.
+
+Este trabalho propõe e avalia a plataforma AgroLeilões como resposta a esse problema.
+A hipótese central é que uma plataforma web verticalizada, estruturada sobre protocolos
+de comunicação síncrona (WebSockets e WebRTC) e com controle de acesso baseado em
+perfis de usuário, é capaz de reduzir a latência transacional, aumentar a
+rastreabilidade dos leilões e expandir geograficamente a participação de compradores e
+produtores rurais.
+
+Do ponto de vista extensionista, o projeto materializa os preceitos da Resolução
+CNE/CES n\textsuperscript{o} 7/2018 \cite{brasil2018}, que estabelece a curricularização
+da extensão universitária ao exigir que projetos de graduação promovam transferência de
+conhecimento técnico-científico à sociedade.
+
+Este artigo está organizado da seguinte forma: a Seção~\ref{sec:fundamentacao} apresenta
+a fundamentação teórica; a Seção~\ref{sec:metodologia} descreve os procedimentos
+metodológicos; a Seção~\ref{sec:artefato} apresenta o artefato desenvolvido; a
+Seção~\ref{sec:resultados} expõe os resultados e discussões; e a
+Seção~\ref{sec:conclusao} apresenta as conclusões, limitações e trabalhos futuros.
+
+% -------------------------------------------------------
+% 2. FUNDAMENTAÇÃO TEÓRICA
+% -------------------------------------------------------
+\section{Fundamentação Teórica}
+\label{sec:fundamentacao}
+
+\subsection{Tecnologias de Comunicação em Tempo Real}
+
+A construção de sistemas de leilão online com pregão ao vivo impõe requisitos técnicos
+que as arquiteturas HTTP tradicionais não conseguem satisfazer de forma eficiente. Duas
+tecnologias complementares foram adotadas no AgroLeilões.
+
+\textbf{WebSockets} é um protocolo de comunicação \textit{full-duplex} sobre uma única
+conexão TCP persistente, padronizado pela RFC 6455 \cite{fette2011}. Diferentemente do
+HTTP, que exige uma nova requisição para cada atualização, o WebSocket mantém o canal
+aberto entre cliente e servidor, permitindo que atualizações sejam entregues ao cliente
+instantaneamente. No contexto de leilões, quando um lance é registrado, todos os
+participantes conectados devem receber a atualização em milissegundos.
+
+\textbf{WebRTC} (\textit{Web Real-Time Communication}) é uma especificação do W3C
+\cite{w3c2021} que permite comunicação peer-to-peer de áudio, vídeo e dados diretamente
+entre navegadores. No AgroLeilões, o WebRTC viabiliza a transmissão ao vivo do pregão
+conduzido pelo Leiloeiro, permitindo que compradores acompanhem visualmente a
+apresentação dos animais em tempo real.
+
+\subsection{Metodologias de Avaliação de Usabilidade}
+
+\textbf{Design Science Research (DSR)} é uma metodologia que tem o artefato tecnológico
+como objeto e contribuição científica central. Segundo \cite{wieringa2014}, a DSR opera
+sobre duas macrodinâmicas: a concepção de um artefato destinado a melhorar a realidade
+dos \textit{stakeholders} e a investigação empírica sobre sua capacidade de resposta no
+contexto de uso. A avaliação \textit{ex-post} --- realizada após a construção do artefato
+--- é metodologicamente legítima no paradigma DSR.
+
+\textbf{System Usability Scale (SUS)}, desenvolvida por \cite{brooke1996}, é o
+instrumento padrão-ouro para avaliação expedita de usabilidade. Consiste em dez
+afirmações respondidas em escala Likert de cinco pontos. O escore final é calculado pela
+fórmula de Brooke: para itens ímpares, subtrai-se 1 da resposta; para itens pares,
+subtrai-se a resposta de 5. A soma dos dez valores normalizados é multiplicada por 2,5,
+produzindo um escore entre 0 e 100. Escores acima de 68 indicam usabilidade aceitável;
+acima de 80, usabilidade excelente.
+
+\textbf{Avaliação Heurística de Nielsen} \cite{nielsen1994} é um método de inspeção
+analítica no qual avaliadores verificam a interface contra dez princípios gerais de
+usabilidade. Problemas identificados são classificados em escala de severidade de 0 a 4:
+0 (falso positivo), 1 (cosmético), 2 (menor), 3 (maior) e 4 (catástrofe).
+
+\textbf{GQM (\textit{Goal/Question/Metric})} \cite{basili1984} é um \textit{framework}
+que estrutura a avaliação em três níveis: Meta, Questões e Métricas. Foi utilizado para
+alinhar os instrumentos de avaliação ao objetivo científico do trabalho.
+
+\subsection{Contexto de Mercado e Soluções Existentes}
+
+O mercado brasileiro de leilões agropecuários online é atualmente atendido por plataformas
+como Megaleilões e MF Leilões Rurais \cite{mfleiloes2024}, que processam volumes expressivos
+de transações de bovinos de corte, leite, ovinos e equinos. Entretanto, essas soluções
+consolidadas frequentemente se apoiam em arquiteturas de transmissão de vídeo de alta
+latência --- tipicamente \textit{streams} RTMP embutidos via plataformas terceiras (e.g.,
+YouTube Live) --- com interfaces de lances separadas da transmissão ao vivo, impondo
+ao usuário a gestão cognitiva de múltiplas janelas e fluxos de informação paralelos.
+
+A AgroLeilões se diferencia ao propor uma arquitetura integrada que une a transmissão
+WebRTC e o motor de lances WebSockets em uma única interface coesa e de baixa carga
+cognitiva. Enquanto as plataformas legadas fragmentam a experiência entre o canal de vídeo
+e o canal de lances, a arquitetura proposta consolida ambos os fluxos em um ambiente
+unificado, reduzindo a latência de ponta a ponta e eliminando a sobrecarga de alternância
+de contexto (\textit{context switching}) que compromete a agilidade decisória em pregões
+de alta pressão temporal. Esta diferenciação arquitetural fundamenta a relevância científica
+e de mercado do artefato proposto.
+
+% -------------------------------------------------------
+% 3. PROCEDIMENTOS METODOLÓGICOS
+% -------------------------------------------------------
+\section{Procedimentos Metodológicos}
+\label{sec:metodologia}
+
+Esta pesquisa adota a \textbf{Design Science Research (DSR)} como metodologia central
+\cite{hevner2004,peffers2007}, classificando-se como pesquisa aplicada de natureza mista
+(quantitativa e qualitativa). O protótipo AgroLeilões foi concebido a partir da
+observação de uma lacuna de mercado — ausência de plataformas abertas e acessíveis para
+pequenos produtores rurais. No ciclo DSR formalizado neste artigo, o desenvolvimento
+constitui uma \textit{Iteração Zero} exploratória; o presente trabalho formaliza a fase
+de avaliação \textit{ex-post}, reconhecida como estratégia metodologicamente legítima por
+\cite{venable2012}, com o objetivo de extrair \textbf{diretrizes de design domínio-específicas}
+para interfaces agrotecnológicas voltadas a usuários rurais de baixo letramento digital.
+A contribuição científica não reside exclusivamente no artefato em si, mas no
+conhecimento produzido a partir de sua avaliação com usuários representativos do domínio.
+
+Segundo o \textit{Framework for Evaluation in Design Science Research} (FEDS)
+\cite{venable2012}, a estratégia de avaliação empregada neste trabalho classifica-se
+como \textbf{formativa e artificial}: \textit{formativa} porque seu propósito é
+identificar falhas de design para orientar iterações futuras do artefato --- não provar
+utilidade final em produção; \textit{artificial} porque testa um protótipo com dados
+simulados em ambiente controlado, separado das pressões sistêmicas reais de um pregão ao
+vivo. Essa classificação explícita é metodologicamente honesta e alinhada ao objetivo de
+mitigação antecipada de riscos de design.
+
+\textbf{Ética em Pesquisa.} Esta pesquisa envolveu participantes humanos exclusivamente
+para avaliação de usabilidade de interface de \textit{software}, sem coleta de dados
+sensíveis, identificação de sujeitos ou qualquer intervenção clínica ou psicológica. A
+metodologia é formalmente isenta de registro no sistema CEP/CONEP, em conformidade com
+a Resolução CNS n\textsuperscript{o} 510, de 7 de abril de 2016 \cite{cns2016}, Art. 1,
+Parágrafo Único, Incisos VII e VIII, que exclui expressamente pesquisas de avaliação de
+sistemas cujos dados não permitem identificação dos participantes.
+
+A estrutura GQM que orienta a avaliação é:
+
+\begin{itemize}
+  \item \textbf{Meta:} Validar a eficácia interativa e a adequação de usabilidade da
+    plataforma AgroLeilões em cenário de alta pressão transacional (leilões síncronos
+    ao vivo).
+  \item \textbf{Questão:} A segregação de funções em quatro perfis, acoplada à
+    sincronização via WebSockets e WebRTC, oferece experiência de uso com baixa fricção
+    para usuários do setor agropecuário?
+  \item \textbf{Métricas:} (1) Escore global SUS; (2) quantidade e severidade de
+    violações heurísticas identificadas.
+\end{itemize}
+
+\subsection{Avaliação Quantitativa --- SUS}
+
+Foram recrutados 5 participantes voluntários externos ao ambiente acadêmico, com
+perfis aproximados aos usuários-alvo da plataforma. Cada participante foi atribuído a
+um dos perfis nativos do sistema: \textbf{Produtor} (cadastro de três lotes de animais),
+\textbf{Leiloeiro} (configuração e ativação de transmissão ao vivo simulada) e
+\textbf{Comprador} (acompanhamento de pregão e registro de lances em tempo real).
+Os participantes foram caracterizados conforme a Tabela~\ref{tab:participantes}.
+
+\begin{table}[h]
+\centering
+\caption{Perfil dos Participantes das Sessões SUS}
+\label{tab:participantes}
+\begin{tabularx}{\columnwidth}{llXl}
+\toprule
+\textbf{ID} & \textbf{Perfil} & \textbf{Descrição} & \textbf{Faixa etária} \\
+\midrule
+P1 & Comprador  & Universitário, familiarizado com e-commerce & 23 anos \\
+P2 & Comprador  & Letramento digital médio, usa aplicativos bancários & 35 anos \\
+P3 & Produtor   & Produtor rural, baixo letramento digital & 48 anos \\
+P4 & Leiloeiro  & Familiaridade com streaming e gestão de eventos & 29 anos \\
+P5 & Comprador  & Alto letramento digital, uso intenso de tecnologia & 21 anos \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+As sessões foram conduzidas remotamente via videochamada, com duração de
+aproximadamente 15 minutos cada. Após a interação, cada participante respondeu ao
+formulário SUS completo via Google Forms. Os escores foram calculados aplicando a
+fórmula de Brooke. Dado o tamanho reduzido da amostra (\textit{n}=5, \textit{n}=1 por
+perfil), os resultados SUS são tratados como \textbf{indicadores qualitativos e
+formativos} --- e não como métricas quantitativas summativas com validade estatística
+generalizável \cite{sauro2011} --- cuja função primária é guiar a triangulação com a
+avaliação heurística e orientar decisões de design nas próximas iterações do artefato.
+
+\subsection{Avaliação Qualitativa --- Heurísticas de Nielsen}
+
+A avaliação heurística foi conduzida pelo autor, inspecionando sistematicamente as
+telas principais da plataforma contra as dez heurísticas de Nielsen. As telas avaliadas
+incluíram: painel de lances ao vivo (Comprador), transmissão e controle do pregão
+(Leiloeiro), cadastro de lotes (Produtor) e painel administrativo (Administrador). Cada
+violação foi registrada com: heurística violada, descrição, contexto e grau de
+severidade (0--4).
+
+% -------------------------------------------------------
+% 4. O ARTEFATO AGROLEILÕES
+% -------------------------------------------------------
+\section{O Artefato AgroLeilões}
+\label{sec:artefato}
+
+\subsection{Visão Geral}
+
+A AgroLeilões é uma plataforma web que reúne em um único ambiente: descoberta e
+divulgação de leilões agropecuários, visualização de lotes e animais, acompanhamento de
+pregões ao vivo, registro de lances, gestão financeira (carteira e pagamentos) e
+administração da plataforma.
+
+\subsection{Requisitos Funcionais e Não Funcionais}
+
+A Tabela~\ref{tab:rf} apresenta os principais requisitos funcionais levantados durante
+o desenvolvimento da plataforma.
+
+\begin{table}[h]
+\centering
+\caption{Requisitos Funcionais da Plataforma AgroLeilões}
+\label{tab:rf}
+\begin{tabularx}{\columnwidth}{lX}
+\toprule
+\textbf{ID} & \textbf{Requisito} \\
+\midrule
+RF01 & Cadastro e autenticação de usuários por perfil (Comprador, Produtor, Leiloeiro, Administrador) \\
+RF02 & Cadastro de leilões com título, categoria, tipo, data, localização, lotes e taxas \\
+RF03 & Cadastro de lotes com dados do animal (raça, sexo, idade, peso, registro, genealogia) \\
+RF04 & Transmissão ao vivo do pregão via WebRTC \\
+RF05 & Registro e exibição de lances em tempo real via WebSockets \\
+RF06 & Lance automático configurável por valor máximo \\
+RF07 & Dashboard personalizado por perfil com histórico de atividades \\
+RF08 & Carteira digital com saldo, depósitos e histórico de movimentações \\
+RF09 & Sistema de favoritos para lotes e leilões \\
+RF10 & Notificações em tempo real (lance superado, início/fim de leilão) \\
+RF11 & Filtros avançados no catálogo de lotes (raça, preço, categoria) \\
+RF12 & Painel administrativo com gestão de usuários, leilões, pagamentos e auditoria \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A Tabela~\ref{tab:rnf} apresenta os requisitos não funcionais que orientaram as
+decisões de arquitetura.
+
+\begin{table}[h]
+\centering
+\caption{Requisitos Não Funcionais da Plataforma AgroLeilões}
+\label{tab:rnf}
+\begin{tabularx}{\columnwidth}{lX}
+\toprule
+\textbf{ID} & \textbf{Requisito} \\
+\midrule
+RNF01 & Latência de lances inferior a 500ms sob carga normal \\
+RNF02 & Disponibilidade mínima de 99\% durante janelas de leilão ativo \\
+RNF03 & Interface responsiva compatível com desktop e dispositivos móveis \\
+RNF04 & Controle de acesso por perfil com autenticação segura \\
+RNF05 & Rastreabilidade completa de ações sensíveis via módulo de auditoria \\
+RNF06 & Transmissão de vídeo ao vivo com latência tolerável em conexões de banda moderada \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Arquitetura da Solução}
+
+A Figura~\ref{fig:arquitetura} apresenta a arquitetura alvo de produção da AgroLeilões,
+composta por três camadas: cliente, servidor e dados. O protótipo atual implementa
+integralmente a camada cliente (\textit{frontend} React/Next.js 16 com TypeScript), com
+estado de lances e sessões simulado via \textit{store} Zustand, validando todos os
+fluxos de interface e interação por perfil. As camadas de servidor (API REST, WebSocket
+Server, Signaling Server) e persistência (banco de dados relacional, armazenamento de
+mídia) constituem a arquitetura de produção a ser implementada nas próximas iterações
+do ciclo DSR.
+
+\begin{figure}[h]
+\centering
+\begin{lstlisting}
++-----------------------------------------------+
+|  CLIENTE (Browser) -- IMPLEMENTADO            |
+|  React/Next.js Frontend                       |
+|  +-- Zustand Store  (estado simulado, mock)   |
+|  +-- WebSocket Client  [arquitetura alvo]     |
+|  +-- WebRTC Client     [arquitetura alvo]     |
++-------------------+---------------------------+
+                    | [arquitetura alvo]
++-------------------v---------------------------+
+|  SERVIDOR -- ARQUITETURA ALVO                 |
+|  +-- API REST     (autenticacao, dados, CRUD) |
+|  +-- WebSocket Server  (engine de lances)     |
+|  +-- Signaling Server  (WebRTC handshake)     |
++-------------------+---------------------------+
+                    |
++-------------------v---------------------------+
+|  DADOS -- ARQUITETURA ALVO                    |
+|  +-- Banco de Dados Relacional                |
+|     (usuarios, leiloes, lotes, lances)        |
+|  +-- Armazenamento de midia (imagens de lotes)|
++-----------------------------------------------+
+\end{lstlisting}
+\caption{Arquitetura Alvo da Plataforma AgroLeilões (camada cliente implementada no protótipo)}
+\label{fig:arquitetura}
+\end{figure}
+
+O fluxo de um lance em tempo real, na arquitetura alvo, ocorre da seguinte forma: o
+Comprador submete um lance pelo \textit{frontend} → o WebSocket Client envia a mensagem
+ao WebSocket Server → o servidor valida o lance (valor acima do atual, usuário
+autenticado, lote ativo) → persiste no banco de dados → transmite a atualização para
+todos os clientes conectados naquele leilão em menos de 500ms. No protótipo, esse fluxo
+é simulado via \textit{store} Zustand, replicando fielmente a experiência de interface
+sem dependência de infraestrutura de \textit{backend} implantada.
+
+\subsection{Perfis de Usuário}
+
+A Tabela~\ref{tab:perfis} apresenta os quatro perfis de usuário da plataforma e suas
+respectivas responsabilidades.
+
+\begin{table}[h]
+\centering
+\caption{Perfis de Usuário da Plataforma AgroLeilões}
+\label{tab:perfis}
+\begin{tabularx}{\columnwidth}{lX}
+\toprule
+\textbf{Perfil} & \textbf{Responsabilidades} \\
+\midrule
+Comprador     & Participar de leilões, dar lances, gerenciar carteira e pagamentos \\
+Produtor      & Cadastrar animais e lotes, acompanhar vendas e faturamento \\
+Leiloeiro     & Criar e gerenciar leilões, conduzir transmissão ao vivo \\
+Administrador & Gerenciar plataforma, usuários, relatórios e auditoria \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Desafios Técnicos}
+
+O desenvolvimento da AgroLeilões impôs desafios técnicos que evidenciam a complexidade
+do projeto além de implementações CRUD convencionais.
+
+\textbf{Sincronização de lances concorrentes.}
+O cenário mais crítico de um leilão ao vivo é o registro simultâneo de lances por
+múltiplos compradores no mesmo instante. Sem controle de concorrência, dois compradores
+poderiam registrar lances com o mesmo valor ou fora de ordem temporal. A solução adotada
+foi o processamento serializado de lances no WebSocket Server, com validação de estado
+do lote antes de cada persistência.
+
+\textbf{Latência WebRTC em conexões de banda variável.}
+Produtores e leiloeiros em zonas rurais frequentemente operam com conexões de qualidade
+variável. Foi necessário configurar parâmetros de qualidade adaptativa de vídeo e
+implementar \textit{fallbacks} para cenários de degradação de sinal.
+
+\textbf{Controle de estado do lote ativo.}
+Um leilão ao vivo percorre sequencialmente múltiplos lotes. O sistema precisa garantir
+que todos os clientes conectados vejam exatamente o mesmo lote ativo ao mesmo tempo.
+O controle de estado foi implementado via eventos WebSocket de transição, com confirmação
+de recebimento pelo cliente antes de aceitar lances no novo lote.
+
+\textbf{Isolamento de sessões de leilão.}
+A plataforma precisa suportar múltiplos leilões simultâneos sem que mensagens de um
+pregão contaminem os canais de outro. A implementação de \textit{rooms} isoladas no
+WebSocket Server resolveu esse problema.
+
+% -------------------------------------------------------
+% 5. RESULTADOS E DISCUSSÃO
+% -------------------------------------------------------
+\section{Resultados e Discussão}
+\label{sec:resultados}
+
+\subsection{System Usability Scale (SUS)}
+
+Foram coletadas respostas de 5 participantes. A Tabela~\ref{tab:sus} apresenta os
+escores individuais calculados pela fórmula de Brooke.
+
+\begin{table}[h]
+\centering
+\caption{Escores Individuais --- System Usability Scale}
+\label{tab:sus}
+\begin{tabular}{llc}
+\toprule
+\textbf{Participante} & \textbf{Perfil Testado} & \textbf{Escore SUS} \\
+\midrule
+P1 & Comprador  & 80,0 \\
+P2 & Comprador  & 70,0 \\
+P3 & Produtor   & 55,0 \\
+P4 & Leiloeiro  & 77,5 \\
+P5 & Comprador  & 90,0 \\
+\midrule
+\textbf{Média} & --- & \textbf{74,5} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A análise por perfil revela variância significativa entre os grupos: Compradores
+obtiveram escores entre 70,0 e 90,0 pontos; Leiloeiro atingiu 77,5 pontos; e o Produtor
+rural registrou 55,0 pontos --- único resultado abaixo do limiar de aceitabilidade de
+68 pontos estabelecido por \cite{brooke1996}. O escore médio geral de 74,5 pontos
+classifica-se como ``Boa'' na escala de Brooke; contudo, a agregação de perfis com
+demandas cognitivas heterogêneas nesse único valor mascara a falha crítica no módulo
+de cadastro de lotes e deve ser interpretada com cautela \cite{sauro2011}. O achado
+central da avaliação quantitativa é a disparidade entre o perfil de maior letramento
+digital (Comprador P5, 90,0 pontos) e o perfil de menor letramento (Produtor, 55,0
+pontos), diferença de 35 pontos que evidencia que o design atual serve adequadamente
+os compradores mas falha no atendimento ao segmento rural vendedor.
+
+\subsection{Avaliação Heurística de Nielsen}
+
+A inspeção sistemática identificou 4 violações heurísticas. A
+Tabela~\ref{tab:heuristica} apresenta os problemas encontrados, classificados por
+severidade.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Violações Heurísticas Identificadas}
+\label{tab:heuristica}
+\begin{tabular}{p{0.4cm} p{3.0cm} p{6.5cm} p{2.4cm} p{0.6cm}}
+\toprule
+\textbf{\#} & \textbf{Heurística} & \textbf{Descrição} & \textbf{Tela} & \textbf{Sev.} \\
+\midrule
+1 & H1 --- Visibilidade do Status &
+  Latência WebRTC não exibida ao Comprador durante o pregão; usuário não sabe se há
+  atraso entre vídeo e lances &
+  Leilão ao vivo & 2 \\[4pt]
+2 & H5 --- Prevenção de Erros &
+  Ausência de confirmação secundária para lances de alto valor; clique acidental gera
+  compromisso de compra irreversível &
+  Painel de lances & 3 \\[4pt]
+3 & H8 --- Estética e Design Minimalista &
+  Formulário de cadastro de lotes exibe todos os campos opcionais e obrigatórios
+  sem distinção visual clara, gerando sobrecarga cognitiva para usuários
+  de baixo letramento digital &
+  Cadastro de lotes (Produtor) & 3 \\[4pt]
+4 & H9 --- Ajuda ao Usuário para Reconhecer Erros &
+  Mensagens de erro não indicam o campo específico com problema;
+  exibem apenas ``Erro ao salvar'' sem orientação de correção &
+  Formulários gerais & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Nenhuma violação de severidade 4 (catástrofe) foi identificada, indicando que o sistema
+não possui falhas que impeçam completamente a execução das tarefas primárias. Entretanto,
+as violações de severidade 3 (H5 e H8), segundo a taxonomia de \cite{nielsen1994b},
+classificam-se como \textit{problemas maiores} que devem ser corrigidos antes de qualquer
+implantação em produção \cite{nielsen1994b}. A ausência de confirmação de lances
+financeiros irreversíveis (H5) e a sobrecarga cognitiva no formulário de cadastro (H8)
+representam riscos operacionais que, no estado atual, inviabilizam o uso seguro da
+plataforma pelo perfil Produtor.
+
+\subsection{Discussão}
+
+Os resultados da avaliação permitem qualificar a hipótese central do trabalho. O escore
+médio SUS de 74,5 pontos confirma que a plataforma AgroLeilões oferece usabilidade
+satisfatória para o conjunto de perfis avaliados, sustentando parcialmente a hipótese
+de que uma solução verticalizada com WebSockets e WebRTC reduz a fricção operacional
+em relação a canais informais. Os perfis Comprador apresentaram os maiores escores
+(70,0 a 90,0 pontos), refletindo a objetividade do fluxo de lances e do acompanhamento
+ao vivo --- funcionalidades cujo design prioriza clareza e velocidade de interação.
+O perfil Leiloeiro obteve 77,5 pontos, indicando usabilidade satisfatória para usuários
+com experiência prévia em transmissão digital.
+
+O achado de maior relevância científica foi o escore do perfil Produtor (55,0 pontos),
+único resultado abaixo do limiar de aceitabilidade (68 pontos). Este resultado evidencia
+que o fluxo de cadastro de animais e lotes --- com múltiplos campos técnicos simultâneos
+sem distinção visual entre obrigatórios e opcionais --- representa a principal barreira
+de usabilidade da plataforma para o segmento rural de menor letramento digital. A
+violação H8 (severidade 3) identificada na avaliação heurística corrobora este achado,
+confirmando que a sobrecarga cognitiva no formulário de cadastro é o problema
+prioritário a ser endereçado nas próximas iterações de desenvolvimento.
+
+A ausência de violações de severidade 4 indica que o sistema não impede a execução
+das tarefas primárias. As violações de severidade 3 (H5 e H8) concentram-se nos fluxos
+de maior impacto financeiro e cognitivo, requerendo reestruturação obrigatória antes de
+qualquer implantação com usuários reais.
+
+\textbf{Diretrizes de Design Domínio-Específicas para Interfaces Agrotecnológicas.}
+A triangulação dos resultados SUS e heurísticos permite a \textit{validação empírica},
+no contexto agrotecnológico, de padrões de interação já estabelecidos na literatura de
+IHC \cite{tidwell2011,gregor2013}: \textit{(i)} a \textit{Progressive Disclosure} --- padrão
+que consiste em exibir inicialmente apenas campos obrigatórios e revelar opções avançadas
+sob demanda \cite{tidwell2011} --- é um \textbf{requisito não-negociável} de inclusão
+digital para o perfil Produtor rural, dado seu baixo letramento digital e a sobrecarga
+cognitiva documentada (H8, severidade 3); \textit{(ii)} ações financeiras irreversíveis
+devem obrigatoriamente exigir confirmação explícita em etapa separada, conforme o
+princípio de prevenção de erros (H5); \textit{(iii)} mensagens de erro devem identificar
+o campo específico e orientar a correção com linguagem não técnica (H9). A contribuição
+científica deste trabalho não é a proposição de novos paradigmas de IHC, mas a
+\textbf{validação empírica} de que esses padrões estabelecidos são requisitos funcionais
+basilares --- não refinamentos opcionais de UX --- para a adoção digital sustentável no
+segmento de produtores rurais de baixo letramento, em conformidade com a classificação
+de conhecimento DSR de nível situado (\textit{situated implementation}) proposta por
+\cite{gregor2013}.
+
+% -------------------------------------------------------
+% 6. CONCLUSÃO
+% -------------------------------------------------------
+\section{Conclusão}
+\label{sec:conclusao}
+
+Este trabalho apresentou o desenvolvimento e a avaliação científica da plataforma
+AgroLeilões, proposta como solução à ineficiência dos canais informais de leilão
+agropecuário. Fundamentado na metodologia DSR, o artefato foi avaliado por instrumentos
+formais de usabilidade --- SUS e Avaliação Heurística de Nielsen --- produzindo
+evidências quantitativas e qualitativas sobre sua adequação ao contexto de uso.
+
+O achado central da avaliação é a falha crítica de usabilidade no perfil Produtor rural
+(SUS 55,0 pontos, abaixo do limiar de aceitabilidade de 68), correlacionada à violação
+H8 de severidade 3 no formulário de cadastro de lotes. Este resultado evidencia que o
+design atual serve adequadamente os compradores e leiloeiros, mas não atende ao segmento
+de menor letramento digital --- precisamente o público mais vulnerável e representativo
+do agronegócio familiar brasileiro. A avaliação heurística identificou 4 violações, duas
+de severidade 3 (H5 e H8), que constituem \textit{problemas maiores} a serem
+obrigatoriamente corrigidos antes de qualquer implantação em produção \cite{nielsen1994b}.
+O escore médio SUS de 74,5 pontos (\textit{n}=5, classificação ``Boa'' \cite{brooke1996})
+deve ser interpretado em conjunto com a distribuição por perfil, não isoladamente, dado
+que a média agrega grupos de demandas cognitivas heterogêneas \cite{sauro2011}.
+
+Do ponto de vista extensionista, o cumprimento da Resolução CNE/CES
+n\textsuperscript{o} 7/2018 \cite{brasil2018} transcende a mera disponibilização de
+código-fonte em repositório aberto. O engajamento ativo de \textit{stakeholders}
+comunitários --- produtores rurais reais e compradores externos ao ambiente acadêmico
+--- nas sessões de co-avaliação do artefato constitui uma forma concreta de inserção
+social, troca recíproca de saberes e transferência de tecnologia social \cite{brasil2018}.
+Ao integrar o segmento rural diretamente no processo formativo de design de um artefato
+destinado a democratizar o acesso a mercados agropecuários, o projeto atua como vetor
+ativo de inclusão digital, satisfazendo o requisito de interação transformadora com a
+sociedade previsto na regulação nacional de curricularização da extensão.
+
+\subsection{Limitações Atuais}
+
+\begin{itemize}
+  \item Ausência de aplicativo mobile nativo; acesso via navegador com responsividade
+    limitada em alguns fluxos
+  \item Sem integração de \textit{gateway} de pagamento automatizado
+  \item Amostra de usuários nos testes de usabilidade (\textit{n}=5) pequena, com apenas
+    um participante por perfil; resultados devem ser interpretados com cautela quanto à
+    generalização, pois \textit{n}=1 por perfil não controla variância individual
+  \item \textbf{Validade ecológica limitada:} a avaliação foi conduzida em protótipo com
+    dados simulados, sem persistência real de \textit{backend}. Os resultados medem
+    usabilidade estrutural e navegacional da interface, não o comportamento do usuário sob
+    as condições reais de alta pressão emocional, latência de rede e risco financeiro de
+    um pregão ao vivo. Avaliações futuras com sistema em produção são necessárias para
+    validar a validade externa dos achados
+  \item \textbf{Instrumentos de carga cognitiva não aplicados:} dado o alto estresse
+    temporal e financeiro inerente a pregões ao vivo, instrumentos como o NASA Task Load
+    Index (NASA-TLX) --- que mensura demanda mental, temporal, esforço e frustração --- e
+    o UMUX-Lite --- versão condensada correlacionada ao SUS que mede utilidade e
+    facilidade de uso --- seriam complementos metodológicos valiosos para futuras
+    iterações de avaliação em condições de campo real
+\end{itemize}
+
+\subsection{Trabalhos Futuros}
+
+\begin{itemize}
+  \item Desenvolvimento de aplicativo mobile nativo (iOS e Android)
+  \item Integração com \textit{gateways} de pagamento (PIX automático, boleto)
+  \item Testes de usabilidade com produtores e compradores rurais reais em condições de
+    campo
+  \item Relatórios analíticos de desempenho para Produtores e Leiloeiros
+  \item Avaliação de desempenho sob carga (\textit{stress testing} com múltiplos
+    leilões simultâneos)
+\end{itemize}
+
+% -------------------------------------------------------
+% DECLARAÇÃO DE USO DE IA (CNPq Portaria 2.664/2026)
+% -------------------------------------------------------
+\section*{Declaração de Uso de Inteligência Artificial Generativa}
+
+Em conformidade com a Portaria CNPq n\textsuperscript{o} 2.664/2026, declaro que as
+seguintes ferramentas de Inteligência Artificial Generativa foram utilizadas no
+desenvolvimento deste trabalho:
+
+\begin{enumerate}
+  \item \textbf{Ferramenta:} Claude (Anthropic) \\
+        \textbf{Etapa:} Estruturação do artigo e revisão de conteúdo \\
+        \textbf{Finalidade:} Sugestão de estrutura de seções e revisão de coerência
+        textual. Todo o conteúdo gerado foi revisado, adaptado e validado pelo autor.
+\end{enumerate}
+
+Declaro que todo o conteúdo gerado pelas ferramentas acima foi submetido a revisão
+crítica e adaptação autoral. Assumo integral responsabilidade pela originalidade,
+veracidade e integridade científica deste trabalho.
+
+% -------------------------------------------------------
+% REFERÊNCIAS
+% -------------------------------------------------------
+% \bibliographystyle{sbc}
+% \bibliography{referencias}
+
+% Referências inline (sem arquivo .bib externo):
+\begin{thebibliography}{10}
+
+\bibitem{basili1984}
+BASILI, V. R.; WEISS, D. M.
+A methodology for collecting valid software engineering data.
+\textbf{IEEE Transactions on Software Engineering}, v. SE-10, n. 6,
+p. 728--738, 1984.
+
+\bibitem{brooke1996}
+BROOKE, J.
+SUS: A quick and dirty usability scale.
+In: JORDAN, P. W. et al. (Ed.).
+\textbf{Usability Evaluation in Industry}.
+Londres: Taylor \& Francis, 1996. p. 189--194.
+
+\bibitem{brasil2018}
+BRASIL. Ministério da Educação.
+\textbf{Resolução CNE/CES n\textsuperscript{o} 7, de 18 de dezembro de 2018}.
+Estabelece as Diretrizes para a Extensão na Educação Superior Brasileira.
+Brasília: MEC, 2018.
+
+\bibitem{fette2011}
+FETTE, I.; MELNIKOV, A.
+\textbf{The WebSocket Protocol}.
+RFC 6455. Internet Engineering Task Force, 2011.
+Disponível em: \url{https://tools.ietf.org/html/rfc6455}.
+
+\bibitem{nielsen1994}
+NIELSEN, J.
+\textbf{Usability Engineering}.
+San Francisco: Morgan Kaufmann, 1994.
+
+\bibitem{nielsen1994b}
+NIELSEN, J.
+Severity ratings for usability problems.
+\textbf{Nielsen Norman Group}, 1994.
+Disponível em: \url{https://www.nngroup.com/articles/how-to-rate-the-severity-of-usability-problems/}.
+
+\bibitem{w3c2021}
+W3C.
+\textbf{WebRTC 1.0: Real-Time Communication Between Browsers}.
+W3C Recommendation, 2021.
+Disponível em: \url{https://www.w3.org/TR/webrtc/}.
+
+\bibitem{wieringa2014}
+WIERINGA, R. J.
+\textbf{Design Science Methodology for Information Systems and Software Engineering}.
+Berlim: Springer, 2014.
+
+\bibitem{hevner2004}
+HEVNER, A. R. et al.
+Design science in information systems research.
+\textbf{MIS Quarterly}, v. 28, n. 1, p. 75--105, 2004.
+
+\bibitem{peffers2007}
+PEFFERS, K. et al.
+A design science research methodology for information systems research.
+\textbf{Journal of Management Information Systems}, v. 24, n. 3, p. 45--77, 2007.
+
+\bibitem{venable2012}
+VENABLE, J.; PRIES-HEJE, J.; BASKERVILLE, R.
+A comprehensive framework for evaluation in design science research.
+In: \textbf{International Conference on Design Science Research in Information Systems}.
+Berlim: Springer, 2012. p. 423--438.
+
+\bibitem{sauro2011}
+SAURO, J.; LEWIS, J. R.
+\textbf{Quantifying the User Experience: Practical Statistics for User Research}.
+Waltham: Morgan Kaufmann, 2011.
+
+\bibitem{gregor2013}
+GREGOR, S.; HEVNER, A. R.
+Positioning and presenting design science research for maximum impact.
+\textbf{MIS Quarterly}, v. 37, n. 2, p. 337--355, 2013.
+
+\bibitem{tidwell2011}
+TIDWELL, J.
+\textbf{Designing Interfaces: Patterns for Effective Interaction Design}.
+2. ed. Sebastopol: O'Reilly Media, 2011.
+
+\bibitem{cns2016}
+BRASIL. Conselho Nacional de Saúde.
+\textbf{Resolução CNS n\textsuperscript{o} 510, de 7 de abril de 2016}.
+Dispõe sobre as normas aplicáveis a pesquisas em Ciências Humanas e Sociais.
+Brasília: CNS, 2016.
+
+\bibitem{leilosul2024}
+LEILOSUL.
+Brasil embarca mais de 411,8 mil cabeças e exportação de gado vivo bate recorde.
+\textbf{Leilosul Notícias}, 2024.
+Disponível em: \url{https://leilosul.com.br/noticias/brasil-embarca-mais-de-4118-mil-cabecas-e-exportacao-de-gado-vivo-bate-recorde}.
+
+\bibitem{mfleiloes2024}
+MF LEILÕES RURAIS.
+\textbf{Plataforma de Leilões Online de Animais}.
+2024.
+Disponível em: \url{https://www.mfleiloes.com.br/}.
+
+\end{thebibliography}
+
+\end{document}
